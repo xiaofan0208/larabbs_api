@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api;
 
 use Dingo\Api\Http\FormRequest;
 
+// 第三方验证
 class SocialAuthorizationRequest extends FormRequest
 {
     /**
