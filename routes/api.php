@@ -78,7 +78,8 @@ $api->version('v1',[
             // 获取单个话题的数据
         $api->get('topics/{topic}','TopicsController@show')
             ->name('api.topics.show');
-        
+
+
         /**
          * 
          *  需要 token 验证的接口
@@ -106,6 +107,10 @@ $api->version('v1',[
             // 删除话题
             $api->delete('topics/{topic}','TopicsController@destroy')
                 ->name('api.topics.destroy');
+            
+            //只有登录用户才可以进行回复
+            $api->post('topics/{topic}/replies', 'RepliesController@store')
+                ->name('api.topics.replies.store');
         });
     });
 });
