@@ -71,4 +71,10 @@ class TopicsController extends Controller
 
         return $this->response->paginator($topics,new TopicTransformer());
     }
+
+    // 获取单个话题的数据
+    public function show(Topic $topic)
+    {
+        return $this->response->item($topic ,new TopicTransformer() );
+    }
 }
