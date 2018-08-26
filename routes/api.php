@@ -21,7 +21,7 @@ $api = app('Dingo\Api\Routing\Router');
 
 $api->version('v1',[
     'namespace' => 'App\Http\Controllers\Api',
-    'middleware' => ['serializer:array','bindings'] ,  //ArraySerializer 
+    'middleware' => ['serializer:array','bindings' ,'change-locale'] ,  //ArraySerializer 
 ],function($api){
 
     $api->group([
