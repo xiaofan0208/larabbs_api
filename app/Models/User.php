@@ -9,11 +9,15 @@ use Auth;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 use Spatie\Permission\Traits\HasRoles;
 
+use Laravel\Passport\HasApiTokens;
+
 class User extends Authenticatable implements JWTSubject
 {
     use Traits\LastActivedAtHelper ;
     use Traits\ActiveUserHelper;
     use HasRoles;
+
+    use HasApiTokens;
     
     use Notifiable {
         notify as protected laravelNotify ;// 把系统的notify重命名为laravelNotify
@@ -104,5 +108,15 @@ class User extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims()
     {
         return [];
+    }
+
+    // 支持手机登录
+    public function findForPassport($username)
+    {
+        filter_var($username, FILTER_VALIDATE_EMAIL) ?
+            $credentials['email'] = $username :
+            $credentials['phone'] = $username;
+        
+        return self::where($credentials)->first();
     }
 }

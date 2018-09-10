@@ -8,6 +8,11 @@ use App\Http\Requests\Api\SocialAuthorizationRequest;
 use App\Http\Requests\Api\AuthorizationRequest;
 use Auth;
 
+use Zend\Diactoros\Response as Psr7Response;
+use Psr\Http\Message\ServerRequestInterface;
+use League\OAuth2\Server\Exception\OAuthServerException;
+use League\OAuth2\Server\AuthorizationServer;
+
 /**
  *  授权处理
  */
@@ -66,22 +71,33 @@ class AuthorizationsController extends Controller
     }
 
     // 登录
-    public function store(AuthorizationRequest $request)
+    public function store(AuthorizationRequest $originRequest, AuthorizationServer $server, ServerRequestInterface $serverRequest)
     {
-        $username = $request->username;
+        if( env('IS_PASSPORT') ){
+            try {
+                return $server->respondToAccessTokenRequest($serverRequest, new Psr7Response)->withStatus(201);
+             } catch(OAuthServerException $e) {
+                 return $this->response->errorUnauthorized($e->getMessage());
+             }
+        }
+        else{
+            $request = $originRequest;
+            $username = $request->username;
 
-        // 判断是email登录还是phone登录
-        filter_var($username , FILTER_VALIDATE_EMAIL ) ?
-            $credentials['email'] = $username :
-            $credentials['phone'] = $username ;
-        
-        $credentials['password'] = $request->password;
-
-        if( !$token = \Auth::guard('api')->attempt($credentials) ){
-            return $this->response->errorUnauthorized(trans('auth.failed'));
+            // 判断是email登录还是phone登录
+            filter_var($username , FILTER_VALIDATE_EMAIL ) ?
+                $credentials['email'] = $username :
+                $credentials['phone'] = $username ;
+            
+            $credentials['password'] = $request->password;
+    
+            if( !$token = \Auth::guard('api')->attempt($credentials) ){
+                return $this->response->errorUnauthorized(trans('auth.failed'));
+            }
+    
+            return $this->respondWithToken($token)->setStatusCode(201);
         }
 
-        return $this->respondWithToken($token)->setStatusCode(201);
     }
 
     protected function respondWithToken($token)
@@ -94,16 +110,30 @@ class AuthorizationsController extends Controller
     }
 
     // 刷新token
-    public function update()
+    public function update(AuthorizationServer $server, ServerRequestInterface $serverRequest)
     {
-        $token = Auth::guard('api')->refresh();
-        return $this->respondWithToken($token);
+        if( env('IS_PASSPORT') ){
+            try {
+                return $server->respondToAccessTokenRequest($serverRequest, new Psr7Response);
+             } catch(OAuthServerException $e) {
+                 return $this->response->errorUnauthorized($e->getMessage());
+             }
+        }else{
+            $token = Auth::guard('api')->refresh();
+            return $this->respondWithToken($token);
+        }
+
     }
 
     // 删除token
     public function destroy()
     {
-        Auth::guard('api')->logout();
-        return $this->response->noContent();
+        if( env('IS_PASSPORT') ){
+            $this->user()->token()->revoke();
+            return $this->response->noContent();
+        }else{
+            Auth::guard('api')->logout();
+            return $this->response->noContent();    
+        }
     }
 }
