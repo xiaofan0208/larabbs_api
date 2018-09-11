@@ -13,11 +13,14 @@ use Psr\Http\Message\ServerRequestInterface;
 use League\OAuth2\Server\Exception\OAuthServerException;
 use League\OAuth2\Server\AuthorizationServer;
 
+use App\Traits\PassportToken;
 /**
  *  授权处理
  */
 class AuthorizationsController extends Controller
 {
+    use PassportToken;
+
     //第三方登录 , $type:第三方类型，如weixin
     public function socialStore($type, SocialAuthorizationRequest $request)
     {
@@ -65,9 +68,14 @@ class AuthorizationsController extends Controller
                 break;
         }
 
-        // 模型生成token
-        $token = Auth::guard('api')->fromUser($user);
-        return $this->respondWithToken($token)->setStatusCode(201);
+        if( env('IS_PASSPORT') ){
+            $result = $this->getBearerTokenByUser($user, '1', false);
+            return $this->response->array($result)->setStatusCode(201);
+        }else{
+            // 模型生成token
+            $token = Auth::guard('api')->fromUser($user);
+            return $this->respondWithToken($token)->setStatusCode(201);
+        }
     }
 
     // 登录
